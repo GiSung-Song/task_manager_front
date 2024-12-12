@@ -52,9 +52,9 @@ const LoginPage = () => {
     };
 
     return (
-        <Box sx={{maxWidth: '400px', margin: '0 auto', padding: '20px', textAlign: 'center'}}>
+        <Box sx={{maxWidth: '400px', margin: '0 auto', padding: '20px', textAlign: 'center', top: 100, position: 'relative'}}>
             <form>
-                <Typography variant="h5" component="h2" gutterBottom>
+                <Typography variant="h4" component="h2" gutterBottom>
                     로그인
                 </Typography>
 

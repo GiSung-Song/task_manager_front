@@ -31,12 +31,14 @@ instance.interceptors.response.use(
 
             try {
                 const refreshResponse = await axios.post('http://localhost:8080/api/refresh', null, {withCredentials: true});
-                const newAccessToken = refreshResponse.data.accessToken;
+                const newAccessToken = refreshResponse.data.data.accessToken;
 
                 store.dispatch(setLoginState({
                     isLoggedIn: true,
                     accessToken: newAccessToken
                 }));
+
+                console.log('새로운 토큰 : ', newAccessToken);
 
                 localStorage.setItem('accessToken', newAccessToken);
 

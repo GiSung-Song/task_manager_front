@@ -19,7 +19,6 @@ const UserProfile = () => {
         if (!user) {
             return false;
         }
-
         return (
             user.employeeNumber === loggedInEmployeeNumber ||
             (department.startsWith('HR') && level >= 4)
@@ -75,7 +74,7 @@ const UserProfile = () => {
             setUser(prevState => ({
                 ...prevState,
                 phoneNumber: phoneNumber
-            }));  // 상태 업데이트 후 fetchUserInfo 재호출 방지
+            }));
         } catch (error) {
             setErrorMessage(error.response?.data?.phoneNumber || '핸드폰 번호 수정 중 오류가 발생하였습니다.');
         }
@@ -84,7 +83,7 @@ const UserProfile = () => {
     const resetPassword = async () => {
         try {
             const response = await axios.post(`/users/${employeeNumber}/reset`);
-            alert(`비밀번호를 초기화했습니다. 새 비밀번호 : : ${response.data.tempPassword}`);
+            alert(`비밀번호를 초기화했습니다. 새 비밀번호 : ${response.data.data.password}`);
         } catch (error) {
             setErrorMessage('비밀번호 초기화 중 오류가 발생하였습니다.');
         }
@@ -92,17 +91,19 @@ const UserProfile = () => {
 
     useEffect(() => {
         if (employeeNumber && !user) {
-            fetchUserInfo();  // 사용자 정보 조회
+            fetchUserInfo()
+                .then()
+                .catch();  // 사용자 정보 조회
         }
-    }, [employeeNumber]);  // user를 의존성 배열에서 제거
+    }, [employeeNumber]);
 
     // 비밀번호 수정 페이지로 이동
     const navigateToPasswordChange = () => {
-        navigate('/password-change');
+        navigate('/password-update');
     };
 
     return (
-        <Container maxWidth="sm" style={{ marginTop: '2rem' }}>
+        <Container maxWidth="sm" style={{ marginTop: '2rem', position: 'relative', top: 100}}>
             {user ? (
                 <form>
                     <h2>회원정보</h2>
@@ -156,6 +157,8 @@ const UserProfile = () => {
                         margin="normal"
                         variant="outlined"
                     />
+
+                    {canUpdatePhoneNumber && (
                     <Button
                         color="primary"
                         variant="contained"
@@ -165,6 +168,7 @@ const UserProfile = () => {
                     >
                         핸드폰 번호 수정
                     </Button>
+                    )}
 
                     {canUpdatePassword && (
                         <Button

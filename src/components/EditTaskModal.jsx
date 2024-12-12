@@ -1,38 +1,38 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
+import axios from "../services/axios";
 import {
-    Modal,
     Box,
-    TextField,
     Button,
-    Radio,
-    RadioGroup,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
     FormControlLabel,
     FormLabel,
+    Modal,
+    Radio,
+    RadioGroup,
+    TextField
 } from "@mui/material";
-import axios from "../services/axios";
-import {useSelector} from "react-redux";
 
-const CreateTaskModal = ({open, closeModal}) => {
-    const [newTask, setNewTask] = useState({
-        title: "",
-        description: "",
-        priority: "LOW",
-        startDate: "",
-        deadline: "",
-        taskStatus: "PENDING",
-        taskType: "PERSONAL",
-    });
-
-    const level = useSelector((state) => state.auth.level);
-
+const EditTaskModal = ({open, closeModal, task}) => {
+    const [editTask, setEditTask] = useState(task);
     const [errors, setErrors] = useState({
-        title: false,
-        startDate: false,
+        priority: false,
         deadline: false,
+        taskStatus: false,
     });
+    const [isOpenDialog, setIsOpenDialog] = useState(false);
+
+    useEffect(() => {
+        if (task) {
+            setEditTask(task);
+        }
+    }, [task]);
 
     const handleChange = (field, value) => {
-        setNewTask((prev) => ({...prev, [field]: value}));
+        setEditTask((prev) => ({...prev, [field] : value}));
     };
 
     // 날짜를 로컬 시간대로 변환하는 함수
@@ -44,15 +44,15 @@ const CreateTaskModal = ({open, closeModal}) => {
 
     const validateFields = () => {
         const newErrors = {
-            title: !newTask.title.trim(),
-            startDate: !newTask.startDate.trim(),
-            deadline: !newTask.deadline.trim(),
+            priority: !editTask.priority,
+            deadline: !editTask.deadline,
+            taskStatus: !editTask.taskStatus,
         };
         setErrors(newErrors);
         return !Object.values(newErrors).some((error) => error);
     };
 
-    const createTask = async () => {
+    const editSaveTask = async () => {
         if (!validateFields()) {
             alert("Please fill out all required fields.");
             return;
@@ -60,30 +60,52 @@ const CreateTaskModal = ({open, closeModal}) => {
 
         try {
             const formattedTask = {
-                ...newTask,
-                startDate: convertToLocalDateTime(newTask.startDate),
-                deadline: convertToLocalDateTime(newTask.deadline),
+                ...editTask,
+                deadline: convertToLocalDateTime(editTask.deadline),
             };
 
-            await axios.post("/task", formattedTask);
-            alert("Task created successfully.");
-
-            // 등록 후 상태 초기화
-            setNewTask({
-                title: "",
-                description: "",
-                priority: "LOW",
-                startDate: "",
-                deadline: "",
-                taskStatus: "PENDING",
-                taskType: "PERSONAL",
-            })
-
+            await axios.patch(`/task/${editTask.taskId}`, formattedTask);
+            alert("Task edit successfully");
+            handleCloseDialog();
             closeModal();
         } catch (error) {
-            console.error("Failed to create task : ", error);
-            alert("Failed to create task");
+            console.error("Failed to edit task : ", error);
+            alert("Failed to edit task");
         }
+    };
+
+    const handleOpenDialog = () => {
+        setIsOpenDialog(true);
+    };
+
+    const handleCloseDialog = () => {
+        setIsOpenDialog(false);
+    };
+
+    const renderConfirmDialog = () => {
+        return (
+            <Dialog open={isOpenDialog} onClose={handleCloseDialog}>
+                <DialogTitle>Edit Confirmation</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Do you really want to edit this task ??
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            editSaveTask();
+                        }}
+                        color="primary"
+                    >
+                        Edit
+                    </Button>
+                    <Button onClick={handleCloseDialog} color="primary">
+                        Cancel
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
     };
 
     return (
@@ -98,23 +120,22 @@ const CreateTaskModal = ({open, closeModal}) => {
                     bgcolor: "background.paper",
                     boxShadow: 24,
                     p: 4,
+                    overflow: "visible",
                 }}
             >
                 <FormLabel>Title</FormLabel>
                 <TextField
                     label="Title"
-                    value={newTask.title}
-                    onChange={(e) => handleChange("title", e.target.value)}
+                    value={editTask.title}
                     fullWidth
                     margin="dense"
-                    error={errors.title}
-                    helperText={errors.title ? "Title is required." : ""}
                     sx={{marginBottom: 2}}
+                    disabled={true}
                 />
                 <FormLabel>Description</FormLabel>
                 <TextField
                     label="Description"
-                    value={newTask.description}
+                    value={editTask.description}
                     onChange={(e) => handleChange("description", e.target.value)}
                     fullWidth
                     margin="dense"
@@ -122,7 +143,7 @@ const CreateTaskModal = ({open, closeModal}) => {
                 />
                 <FormLabel>Priority</FormLabel>
                 <RadioGroup
-                    value={newTask.priority}
+                    value={editTask.priority}
                     onChange={(e) => handleChange("priority", e.target.value)}
                     sx={{
                         display: "flex",
@@ -138,17 +159,15 @@ const CreateTaskModal = ({open, closeModal}) => {
                 <FormLabel>Start Date</FormLabel>
                 <TextField
                     type="date"
-                    value={newTask.startDate}
-                    onChange={(e) => handleChange("startDate", e.target.value)}
+                    value={editTask.startDate.split("T")[0]}
                     fullWidth
-                    error={errors.startDate}
-                    helperText={errors.startDate ? "Start Date is required." : ""}
                     sx={{marginBottom: 2}}
+                    disabled={true}
                 />
                 <FormLabel>Deadline</FormLabel>
                 <TextField
                     type="date"
-                    value={newTask.deadline}
+                    value={editTask.deadline.split("T")[0]}
                     onChange={(e) => handleChange("deadline", e.target.value)}
                     fullWidth
                     error={errors.deadline}
@@ -157,7 +176,7 @@ const CreateTaskModal = ({open, closeModal}) => {
                 />
                 <FormLabel>Status</FormLabel>
                 <RadioGroup
-                    value={newTask.taskStatus}
+                    value={editTask.taskStatus}
                     onChange={(e) => handleChange("taskStatus", e.target.value)}
                     sx={{
                         display: "flex",
@@ -170,35 +189,18 @@ const CreateTaskModal = ({open, closeModal}) => {
                     <FormControlLabel value="PROGRESS" control={<Radio/>} label="In Progress"/>
                     <FormControlLabel value="COMPLETED" control={<Radio/>} label="Completed"/>
                 </RadioGroup>
-                {level >= 4 && (
-                    <>
-                        <FormLabel>Type</FormLabel>
-                        <RadioGroup
-                            value={newTask.taskType}
-                            onChange={(e) => handleChange("taskType", e.target.value)}
-                            sx={{
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                marginBottom: 2,
-                            }}
-                        >
-                            <FormControlLabel value="PERSONAL" control={<Radio/>} label="PERSONAL"/>
-                            <FormControlLabel value="TEAM" control={<Radio/>} label="TEAM"/>
-                        </RadioGroup>
-                    </>
-                )}
                 <Box sx={{mt: 2, display: "flex", justifyContent: "space-between"}}>
-                    <Button variant="contained" color="primary" onClick={createTask}>
-                        Create
+                    <Button variant="contained" color="primary" onClick={() => handleOpenDialog()}>
+                        Edit
                     </Button>
                     <Button variant="outlined" onClick={closeModal}>
                         Cancel
                     </Button>
                 </Box>
+                {renderConfirmDialog()}
             </Box>
         </Modal>
     );
-};
+}
 
-export default CreateTaskModal;
+export default EditTaskModal;

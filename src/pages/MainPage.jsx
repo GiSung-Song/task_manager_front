@@ -1,193 +1,300 @@
 import {useEffect, useState} from "react";
 import axios from "../services/axios";
 import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css"
-import {Button, FormControlLabel, FormLabel, Radio, RadioGroup, TextField} from "@mui/material";
+import "react-calendar/dist/Calendar.css";
+import {
+    Button,
+    Box,
+    TextField,
+    Pagination,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions
+} from "@mui/material";
 import CreateTaskModal from "../components/CreateTaskModal";
+import {useSelector} from "react-redux";
+import EditTaskModal from "../components/EditTaskModal";
 
 const MainPage = () => {
     const [tasks, setTasks] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [tasksByDate, setTasksByDate] = useState({});
-    const [editingTask, setEditingTask] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [taskIdToDelete, setTaskIdToDelete] = useState(null);
 
-    useEffect(() => {
-        const fetchTasks = async () => {
-            try {
-                const response = await axios.get('/task');
-                const fetchData = response.data.data;
-                setTasks(fetchData);
-                groupTasksByDate(fetchData);
-            } catch (error) {
-                console.error('Failed to get tasks', error);
-            }
-        };
+    const employeeNumber = useSelector((state) => state.auth.employeeNumber);
+    const tasksPerPage = 1;
 
-        fetchTasks()
-            .then();
-    }, []);
+    const calculateMonthRange = (date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const startDate = new Date(year, month, 1).toISOString();
+        const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999).toISOString();
+
+        return {startDate, endDate};
+    };
+
+    const fetchTasks = async (startDate, endDate) => {
+        try {
+            const response = await axios.get("/task", {
+                params: {startDate, endDate},
+            });
+            const fetchData = response.data.data;
+            setTasks(fetchData);
+            groupTasksByDate(fetchData);
+        } catch (error) {
+            console.error("Failed to fetch tasks", error);
+        }
+    };
 
     const groupTasksByDate = (tasks) => {
-        const grouped = tasks.reduce((acc, task) => {
-            const dateKey = new Date(task.deadline).toDateString();
-            if (!acc[dateKey]) {
-                acc[dateKey] = [];
+        const grouped = {};
+        tasks.forEach((task) => {
+            const startDate = new Date(task.startDate);
+            const endDate = new Date(task.deadline);
+
+            let currentDate = startDate;
+            while (currentDate <= endDate) {
+                const dateKey = currentDate.toDateString();
+                if (!grouped[dateKey]) {
+                    grouped[dateKey] = [];
+                }
+                grouped[dateKey].push(task);
+                currentDate.setDate(currentDate.getDate() + 1);
             }
-            acc[dateKey].push(task);
-            return acc;
-        }, {});
+        });
         setTasksByDate(grouped);
-    };
-
-    const onDateChange = (date) => {
-        setSelectedDate(date);
-    };
-
-    const handleEditChange = (e, field) => {
-        setEditingTask({...editingTask, [field]: e.target.value});
-    };
-
-    const saveTask = async () => {
-        try {
-            await axios.patch(`/task/${editingTask.taskId}`, editingTask);
-            alert('해당 업무 일정을 수정했습니다.');
-            setEditingTask(null);
-            const updatedTasks = tasks.map((task) =>
-                task.taskId === editingTask.taskId ? editingTask : task);
-
-            setTasks(updatedTasks);
-            groupTasksByDate(updatedTasks);
-        } catch (error) {
-            console.error("Update Fail : ", error);
-        }
     };
 
     const deleteTask = async (taskId) => {
         try {
             await axios.delete(`/task/${taskId}`);
-            alert('해당 업무를 삭제했습니다.');
-            const updateTasks = tasks.filter((task) => task.taskId !== taskId);
-            setTasks(updateTasks);
-            groupTasksByDate(updateTasks);
+            alert("Task deleted successfully.");
+
+            // 삭제 후 데이터 갱신
+            fetchTasks(...Object.values(calculateMonthRange(selectedDate)));
         } catch (error) {
-            console.error('delete fail : ', error);
+            alert("Failed to delete task");
+            console.error("Failed to delete task", error);
         }
     };
 
-    const renderTasksForDate = (date) => {
-        const dateKey = date.toDateString();
+    useEffect(() => {
+        const {startDate, endDate} = calculateMonthRange(selectedDate);
+        fetchTasks(startDate, endDate);
+    }, []);
+
+    const onDateChange = (date) => {
+        setSelectedDate(date);
+        setCurrentPage(1);
+    };
+
+    const openCreateModal = () => setIsCreateModalOpen(true);
+    const closeCreateModal = () => {
+        setIsCreateModalOpen(false);
+
+        const {startDate, endDate} = calculateMonthRange(selectedDate);
+        fetchTasks(startDate, endDate);
+    };
+
+    const openEditModal = () => setIsEditModalOpen(true);
+    const closeEditModal = () => {
+        setIsEditModalOpen(false);
+
+        const {startDate, endDate} = calculateMonthRange(selectedDate);
+        fetchTasks(startDate, endDate);
+    };
+
+    const handleOpenDialog = (taskId) => {
+        setTaskIdToDelete(taskId);
+        setIsDialogOpen(true);
+    };
+
+    const handleCloseDialog = () => {
+        setTaskIdToDelete(null); // 상태 초기화
+        setIsDialogOpen(false);
+    };
+
+    const renderDeleteTaskDialog = () => {
+        return (
+            <Dialog open={isDialogOpen} onClose={handleCloseDialog}>
+                <DialogTitle>Delete Confirmation</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Do you really want to delete this task ??
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            deleteTask(taskIdToDelete);
+                            handleCloseDialog();
+                        }}
+                        color="primary"
+                    >
+                        Delete
+                    </Button>
+                    <Button onClick={handleCloseDialog} color="primary">
+                        Cancel
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
+    };
+
+    const renderTasksForDate = () => {
+        const dateKey = selectedDate.toDateString();
         const dateTasks = tasksByDate[dateKey] || [];
+        const paginatedTask = dateTasks[currentPage - 1];
+
         return (
             <div>
-                {dateTasks.length === 0 ? (
-                    <p>No tasks for this date.</p>
-                ) : (
-                    dateTasks.map((task, index) => (
-                        <div key={task.taskId}>
-                            {editingTask?.taskId === task.taskId ? (
-                                <div>
-                                    <TextField
-                                        label="Title"
-                                        value={editingTask.title}
-                                        fullWidth
-                                    />
-                                    <TextField
-                                        label="Description"
-                                        value={editingTask.description}
-                                        onChange={(e) =>
-                                            handleEditChange("description", e.target.value)
-                                        }
-                                        fullWidth
-                                    />
-                                    <FormLabel>Priority</FormLabel>
-                                    <RadioGroup
-                                        value={editingTask.priority}
-                                        onChange={(e) => handleEditChange("priority", e.target.value)}
-                                    >
-                                        <FormControlLabel value="LOW" control={<Radio/>} label="Low"/>
-                                        <FormControlLabel value="MEDIUM" control={<Radio/>} label="Medium"/>
-                                        <FormControlLabel value="HIGH" control={<Radio/>} label="High"/>
-                                    </RadioGroup>
-                                    <TextField
-                                        type="date"
-                                        value={editingTask.deadline}
-                                        onChange={(e) => handleEditChange("deadline", e.target.value)}
-                                        fullWidth
-                                    />
-                                    <FormLabel>Status</FormLabel>
-                                    <RadioGroup
-                                        value={editingTask.taskStatus}
-                                        onChange={(e) => handleEditChange("taskStatus", e.target.value)}
-                                    >
-                                        <FormControlLabel
-                                            value="PENDING"
-                                            control={<Radio/>}
-                                            label="Pending"
-                                        />
-                                        <FormControlLabel
-                                            value="PROGRESS"
-                                            control={<Radio/>}
-                                            label="In Progress"
-                                        />
-                                        <FormControlLabel
-                                            value="COMPLETED"
-                                            control={<Radio/>}
-                                            label="Completed"
-                                        />
-                                    </RadioGroup>
-                                    <Button variant="contained" color="primary" onClick={saveTask}>
-                                        Save
-                                    </Button>
-                                    <Button onClick={() => setEditingTask(null)}>Cancel</Button>
-                                </div>
-                            ) : (
-                                <div>
-                                    <h4>{task.title}</h4>
-                                    <p>{task.description}</p>
-                                    <Button
-                                        variant="contained"
-                                        color="secondary"
-                                        onClick={() => setEditingTask(task)}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        variant="contained"
-                                        color="error"
-                                        onClick={() => deleteTask(task.taskId)}
-                                    >
-                                        Delete
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    ))
+                {paginatedTask && (
+                    <Box
+                        key={paginatedTask.taskId}
+                        sx={{
+                            marginBottom: 2,
+                            padding: 2,
+                            border: "1px solid #ddd",
+                            borderRadius: "8px",
+                            maxWidth: "600px",
+                        }}
+                    >
+                        <TextField
+                            label="Title"
+                            value={paginatedTask.title}
+                            disabled
+                            sx={{marginBottom: 1, width: "calc(100% - 24px)"}}
+                        />
+                        <TextField
+                            label="Description"
+                            value={paginatedTask.description}
+                            disabled
+                            sx={{marginBottom: 1, width: "calc(100% - 24px)"}}
+                        />
+                        <TextField
+                            label="Priority"
+                            value={paginatedTask.priority}
+                            disabled
+                            sx={{marginBottom: 1, width: "calc(100% - 24px)"}}
+                        />
+                        <TextField
+                            label="Task Status"
+                            value={paginatedTask.taskStatus}
+                            disabled
+                            sx={{marginBottom: 1, width: "calc(100% - 24px)"}}
+                        />
+                        <TextField
+                            label="Start Date"
+                            value={paginatedTask.startDate.split("T")[0]}
+                            disabled
+                            sx={{marginBottom: 1, width: "calc(100% - 24px)"}}
+                        />
+                        <TextField
+                            label="Deadline"
+                            value={paginatedTask.deadline.split("T")[0]}
+                            disabled
+                            sx={{marginBottom: 1, width: "calc(100% - 24px)"}}
+                        />
+                        <TextField
+                            label="Task Type"
+                            value={paginatedTask.taskType}
+                            disabled
+                            sx={{marginBottom: 1, width: "calc(100% - 24px)"}}
+                        />
+                        <TextField
+                            label="Owner"
+                            value={paginatedTask.owner}
+                            disabled
+                            sx={{marginBottom: 1, width: "calc(100% - 24px)"}}
+                        />
+                        <TextField
+                            label="Department"
+                            value={paginatedTask.department}
+                            disabled
+                            sx={{marginBottom: 1, width: "calc(100% - 24px)"}}
+                        />
+                        {paginatedTask.ownerEmployeeNumber === employeeNumber && (
+                            <>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={openEditModal}
+                                    sx={{marginRight: 1}}
+                                >
+                                    수정
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    color="error"
+                                    onClick={() => handleOpenDialog(paginatedTask.taskId)}
+                                >
+                                    삭제
+                                </Button>
+                            </>
+                        )}
+                        {isEditModalOpen && paginatedTask && (
+                            <EditTaskModal
+                                open={isEditModalOpen}
+                                closeModal={closeEditModal}
+                                task={paginatedTask}
+                            />
+                        )}
+                    </Box>
+                )}
+                {dateTasks.length > tasksPerPage && (
+                    <Pagination
+                        count={Math.ceil(dateTasks.length / tasksPerPage)}
+                        page={currentPage}
+                        onChange={(e, page) => setCurrentPage(page)}
+                        sx={{marginTop: 2}}
+                    />
                 )}
             </div>
         );
     };
 
-    const openModal = () => setIsModalOpen(true);
-    const closeModal = () => setIsModalOpen(false);
-
     return (
         <div>
-            <h1>Main Page</h1>
-            <Button variant="contained" color="primary" onClick={openModal}>
-                + Add Task
-            </Button>
-            <CreateTaskModal open={isModalOpen} closeModal={closeModal}/>
-            <Calendar
-                onChange={onDateChange}
-                value={selectedDate}
-                tileContent={({date}) => {
-                    const dateKey = date.toDateString();
-                    return tasksByDate[dateKey] ? <span>•</span> : null;
-                }}
-            />
-            <h3>Selected Date: {selectedDate.toDateString()}</h3>
-            {renderTasksForDate(selectedDate)}
+            <Box position="absolute" top={100} left="27%">
+                <Button variant="contained" color="primary" onClick={openCreateModal}>
+                    + Add Task
+                </Button>
+            </Box>
+            <CreateTaskModal open={isCreateModalOpen} closeModal={closeCreateModal}/>
+            <Box>
+                <Box position="absolute" top={160} left="15%">
+                    <Calendar
+                        onChange={onDateChange}
+                        value={selectedDate}
+                        tileContent={({date}) => {
+                            const dateKey = date.toDateString();
+                            return tasksByDate[dateKey] ? (
+                                <span style={{color: "blue", fontSize: "1.2rem"}}>•</span>
+                            ) : null;
+                        }}
+                    />
+                </Box>
+                <Box position="absolute" top={80} left="40%">
+                    <h3>
+                        {selectedDate.toLocaleDateString("ko-KR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            weekday: "long",
+                        })}
+                    </h3>
+                </Box>
+                <Box position="absolute" top={140} left="40%" marginTop={1}>
+                    {renderTasksForDate()}
+                </Box>
+                {renderDeleteTaskDialog()}
+            </Box>
         </div>
     );
 };

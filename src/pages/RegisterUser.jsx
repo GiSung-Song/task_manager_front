@@ -151,7 +151,7 @@ const RegisterUser = () => {
     };
 
     return (
-        <Box sx={{maxWidth: 400, margin: "0 auto", padding: 4}}>
+        <Box sx={{maxWidth: 400, margin: "0 auto", padding: 4, position: "relative", top: 100}}>
             <Typography variant="h4" gutterBottom>
                 회원가입
             </Typography>

@@ -1,18 +1,18 @@
-import {useState} from "react";
-import {useNavigate} from "react-router-dom";
-import {useLogout} from "../utils/logoutUtils";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLogout } from "../utils/logoutUtils";
 import axios from "../services/axios";
-import {useSelector} from "react-redux";
-import {Alert, Button, TextField} from "@mui/material";
+import { useSelector } from "react-redux";
+import { Alert, Button, CircularProgress, Container, TextField } from "@mui/material";
 
 const PasswordUpdate = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [errors, setErrors] = useState({});
     const [errorMessage, setErrorMessage] = useState('');
+    const [loading, setLoading] = useState(false); // Loading state for async operations
 
     const employeeNumber = useSelector((state) => state.auth.employeeNumber);
-
     const navigate = useNavigate();
     const handleLogout = useLogout();
 
@@ -45,19 +45,25 @@ const PasswordUpdate = () => {
             return;
         }
 
+        setLoading(true); // Show loading state
+
+        console.log(newPassword);
+
         try {
-            await axios.patch(`/users/${employeeNumber}/password`, {newPassword});
+            await axios.patch(`/users/${employeeNumber}/password`, {password : newPassword});
             alert('비밀번호가 수정되었습니다. 다시 로그인해주세요.');
 
             await handleLogout();
             navigate('/login');
         } catch (error) {
             setErrorMessage(error.response?.data?.password || '비밀번호 수정 중 오류가 발생하였습니다.');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div>
+        <Container maxWidth="sm" style={{ marginTop: '2rem', position: 'relative', top: 100 }}>
             <h2>비밀번호 수정</h2>
             <form onSubmit={handleSubmit}>
                 <TextField
@@ -82,12 +88,20 @@ const PasswordUpdate = () => {
                     margin="normal"
                     variant="outlined"
                 />
-                {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-                <Button type="submit" variant="contained" color="primary" fullWidth>
-                    비밀번호 변경
+                {errorMessage && <Alert severity="error" style={{ marginTop: '1rem' }}>{errorMessage}</Alert>}
+
+                <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    style={{ marginTop: '1rem' }}
+                    disabled={loading}
+                >
+                    {loading ? <CircularProgress size={24} color="inherit" /> : '비밀번호 변경'}
                 </Button>
             </form>
-        </div>
+        </Container>
     );
 };
 
