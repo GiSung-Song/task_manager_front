@@ -95,7 +95,7 @@ const UserProfile = () => {
                 .then()
                 .catch();  // 사용자 정보 조회
         }
-    }, [employeeNumber]);
+    }, [employeeNumber, user, fetchUserInfo]);
 
     // 비밀번호 수정 페이지로 이동
     const navigateToPasswordChange = () => {

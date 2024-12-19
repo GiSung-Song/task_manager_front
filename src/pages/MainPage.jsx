@@ -85,7 +85,7 @@ const MainPage = () => {
     useEffect(() => {
         const {startDate, endDate} = calculateMonthRange(selectedDate);
         fetchTasks(startDate, endDate);
-    }, []);
+    }, [fetchTasks, selectedDate]);
 
     const onDateChange = (date) => {
         setSelectedDate(date);
