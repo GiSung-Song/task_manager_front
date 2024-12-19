@@ -3,7 +3,7 @@ import {store} from "../redux/store";
 import {setLoginState} from "../redux/authSlice";
 
 const instance = axios.create({
-    baseURL: 'http://localhost:8080/api',
+    baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api',
     withCredentials: true,
 });
 
@@ -30,7 +30,7 @@ instance.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                const refreshResponse = await axios.post('http://localhost:8080/api/refresh', null, {withCredentials: true});
+                const refreshResponse = await instance.post('/refresh', null);
                 const newAccessToken = refreshResponse.data.data.accessToken;
 
                 store.dispatch(setLoginState({

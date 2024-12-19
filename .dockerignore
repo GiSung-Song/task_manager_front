@@ -1,0 +1,10 @@
+# Node.js 빌드 파일 제외
+node_modules
+
+# Git 파일 제외
+.gitignore
+.git
+
+# Docker 파일 제외
+Dockerfile
+.dockerignore
