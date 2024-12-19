@@ -18,7 +18,6 @@ import {useSelector} from "react-redux";
 import EditTaskModal from "../components/EditTaskModal";
 
 const MainPage = () => {
-    const [tasks, setTasks] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [tasksByDate, setTasksByDate] = useState({});
     const [currentPage, setCurrentPage] = useState(1);
@@ -45,7 +44,6 @@ const MainPage = () => {
                 params: {startDate, endDate},
             });
             const fetchData = response.data.data;
-            setTasks(fetchData);
             groupTasksByDate(fetchData);
         } catch (error) {
             console.error("Failed to fetch tasks", error);
