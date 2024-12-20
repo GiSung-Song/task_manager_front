@@ -1,9 +1,10 @@
 import axios from 'axios';
 import {store} from "../redux/store";
-import {setLoginState} from "../redux/authSlice";
+import {logout, setLoginState} from "../redux/authSlice";
+import BASE_URL from "../utils/config";
 
 const instance = axios.create({
-    baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api',
+    baseURL: BASE_URL,
     withCredentials: true,
 });
 
@@ -30,7 +31,7 @@ instance.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                const refreshResponse = await instance.post('/refresh', null);
+                const refreshResponse = await axios.post(`${BASE_URL}/refresh`, null, {withCredentials: true});
                 const newAccessToken = refreshResponse.data.data.accessToken;
 
                 store.dispatch(setLoginState({
@@ -50,6 +51,7 @@ instance.interceptors.response.use(
 
                 deleteCookie('refreshToken');
                 localStorage.removeItem('accessToken');
+                store.dispatch(logout());
 
                 window.location.href = '/login';
             }

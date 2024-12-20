@@ -18,6 +18,8 @@ import {useSelector} from "react-redux";
 import EditTaskModal from "../components/EditTaskModal";
 
 const MainPage = () => {
+    const [activeStartDate, setActiveStartDate] = useState(new Date());
+    const [selectedYearMonth, setSelectedYearMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [tasksByDate, setTasksByDate] = useState({});
     const [currentPage, setCurrentPage] = useState(1);
@@ -27,8 +29,9 @@ const MainPage = () => {
     const [taskIdToDelete, setTaskIdToDelete] = useState(null);
 
     const employeeNumber = useSelector((state) => state.auth.employeeNumber);
-    const tasksPerPage = 1;
+    const tasksPerPage = 1; // 한 페이지에 표시할 작업 개수
 
+    // 주어진 날짜에 해당하는 월의 첫 번째와 마지막 날짜를 계산하는 함수
     const calculateMonthRange = (date) => {
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -38,18 +41,20 @@ const MainPage = () => {
         return {startDate, endDate};
     };
 
+    // 주어진 날짜 범위에 해당하는 작업들을 불러오는 함수
     const fetchTasks = async (startDate, endDate) => {
         try {
             const response = await axios.get("/task", {
                 params: {startDate, endDate},
             });
             const fetchData = response.data.data;
-            groupTasksByDate(fetchData);
+            groupTasksByDate(fetchData); // 업무를 날짜별로 그룹화
         } catch (error) {
             console.error("Failed to fetch tasks", error);
         }
     };
 
+    // 작업을 날짜별로 그룹화하는 함수
     const groupTasksByDate = (tasks) => {
         const grouped = {};
         tasks.forEach((task) => {
@@ -59,6 +64,7 @@ const MainPage = () => {
             let currentDate = startDate;
             while (currentDate <= endDate) {
                 const dateKey = currentDate.toDateString();
+
                 if (!grouped[dateKey]) {
                     grouped[dateKey] = [];
                 }
@@ -66,58 +72,107 @@ const MainPage = () => {
                 currentDate.setDate(currentDate.getDate() + 1);
             }
         });
-        setTasksByDate(grouped);
+        setTasksByDate(grouped); // 날짜별로 그룹화된 작업 상태를 업데이트
     };
 
+    // 작업 삭제 함수
     const deleteTask = async (taskId) => {
         try {
             await axios.delete(`/task/${taskId}`);
             alert("Task deleted successfully.");
-
-            // 삭제 후 데이터 갱신
-            fetchTasks(...Object.values(calculateMonthRange(selectedDate)));
+            fetchTasks(...Object.values(calculateMonthRange(selectedDate))); // 삭제 후 데이터 갱신
         } catch (error) {
             alert("Failed to delete task");
             console.error("Failed to delete task", error);
         }
     };
 
+    // 페이지 로드 시, 처음에 현재 날짜의 작업들을 불러오기 위해 호출되는 useEffect
     useEffect(() => {
-        const {startDate, endDate} = calculateMonthRange(selectedDate);
+        const {startDate, endDate} = calculateMonthRange(selectedYearMonth);
         fetchTasks(startDate, endDate);
-    }, [fetchTasks, selectedDate]);
+    }, [selectedYearMonth]);
 
+    useEffect(() => {
+        if (selectedDate && selectedDate.getTime() !== activeStartDate.getTime()) {
+            setActiveStartDate(selectedDate);
+        }
+    }, [selectedDate]);
+
+    // 날짜를 선택했을 때 처리되는 함수
     const onDateChange = (date) => {
+        // selectedDate 변경
         setSelectedDate(date);
         setCurrentPage(1);
     };
 
+    // 이전 달 클릭 시
+    const onPrevMonth = () => {
+        const newDate = new Date(selectedDate);
+        const currentMonth = newDate.getMonth();
+
+        newDate.setMonth(newDate.getMonth() - 1);
+
+        // 만약 이전 달의 달력에 없는 날짜면
+        if (currentMonth === newDate.getMonth()) {
+            newDate.setMonth(newDate.getMonth() - 1);
+            newDate.setDate(new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0).getDate());
+        }
+
+        setSelectedDate(newDate); //현재 선택된 날짜 변경
+        setSelectedYearMonth(newDate); //현재 조회하려는 날짜로 변경
+    };
+
+    // 다음 달 클릭 시
+    const onNextMonth = () => {
+        const newDate = new Date(selectedDate);
+        const currentMonth = newDate.getMonth();
+
+        newDate.setMonth(newDate.getMonth() + 1);
+
+        // 만약 다음 달의 달력에 없는 날짜면 달이 두 번 올라가니까
+        if (newDate.getMonth() === currentMonth + 2) {
+            newDate.setMonth(newDate.getMonth() - 1);
+            newDate.setDate(new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0).getDate());
+        }
+
+        setSelectedDate(newDate); //현재 선택된 날짜 변경
+        setSelectedYearMonth(newDate); //현재 조회하려는 날짜로 변경
+    };
+
+    // 작업 생성 모달 열기
     const openCreateModal = () => setIsCreateModalOpen(true);
+
+    // 작업 생성 모달 닫기
     const closeCreateModal = () => {
         setIsCreateModalOpen(false);
-
         const {startDate, endDate} = calculateMonthRange(selectedDate);
         fetchTasks(startDate, endDate);
     };
 
+    // 작업 수정 모달 열기
     const openEditModal = () => setIsEditModalOpen(true);
+
+    // 작업 수정 모달 닫기
     const closeEditModal = () => {
         setIsEditModalOpen(false);
-
         const {startDate, endDate} = calculateMonthRange(selectedDate);
         fetchTasks(startDate, endDate);
     };
 
+    // 삭제 확인 다이얼로그 열기
     const handleOpenDialog = (taskId) => {
         setTaskIdToDelete(taskId);
         setIsDialogOpen(true);
     };
 
+    // 삭제 확인 다이얼로그 닫기
     const handleCloseDialog = () => {
-        setTaskIdToDelete(null); // 상태 초기화
+        setTaskIdToDelete(null);
         setIsDialogOpen(false);
     };
 
+    // 삭제 다이얼로그 컴포넌트
     const renderDeleteTaskDialog = () => {
         return (
             <Dialog open={isDialogOpen} onClose={handleCloseDialog}>
@@ -145,6 +200,7 @@ const MainPage = () => {
         );
     };
 
+    // 선택한 날짜에 해당하는 작업을 페이지네이션에 맞게 표시하는 함수
     const renderTasksForDate = () => {
         const dateKey = selectedDate.toDateString();
         const dateTasks = tasksByDate[dateKey] || [];
@@ -267,18 +323,48 @@ const MainPage = () => {
             <CreateTaskModal open={isCreateModalOpen} closeModal={closeCreateModal}/>
             <Box>
                 <Box position="absolute" top={160} left="15%">
+                    <Button variant="outlined"
+                            onClick={onPrevMonth}
+                            sx={{
+                                position: "absolute",
+                                left: "-100px",
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                            }}>
+                        {"<"}
+                    </Button>
                     <Calendar
                         onChange={onDateChange}
                         value={selectedDate}
+                        activeStartDate={activeStartDate}
+                        onActiveStartDateChange={({activeStartDate}) => setActiveStartDate(activeStartDate)}
                         tileContent={({date}) => {
                             const dateKey = date.toDateString();
                             return tasksByDate[dateKey] ? (
                                 <span style={{color: "blue", fontSize: "1.2rem"}}>•</span>
                             ) : null;
                         }}
+                        onClickMonth={(date) => {
+                            const newDate = new Date(date);
+                            setSelectedDate(newDate);
+                        }}
+                        next2Label={null}
+                        prev2Label={null}
+                        nextLabel={null}
+                        prevLabel={null}
                     />
+                    <Button variant="outlined"
+                            onClick={onNextMonth}
+                            sx={{
+                                position: "absolute",
+                                right: "-100px",
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                            }}>
+                        {">"}
+                    </Button>
                 </Box>
-                <Box position="absolute" top={80} left="40%">
+                <Box position="absolute" top={80} left="50%">
                     <h3>
                         {selectedDate.toLocaleDateString("ko-KR", {
                             year: "numeric",
@@ -288,7 +374,7 @@ const MainPage = () => {
                         })}
                     </h3>
                 </Box>
-                <Box position="absolute" top={140} left="40%" marginTop={1}>
+                <Box position="absolute" top={140} left="50%" marginTop={1}>
                     {renderTasksForDate()}
                 </Box>
                 {renderDeleteTaskDialog()}
