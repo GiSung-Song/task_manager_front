@@ -21,6 +21,8 @@ const DepartmentModal = ({isVisible, close, onSelect}) => {
     // 부서 목록을 API에서 가져오는 함수
     const fetchDepartments = useCallback(async () => {
         try {
+            console.log(">>> 부서 선택 모달 열림 <<<");
+
             const response = await axios.get('/departments');
             console.log("부서 목록 : ", response.data.data);
 
