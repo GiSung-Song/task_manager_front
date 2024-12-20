@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import axios from "../services/axios";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -42,7 +42,7 @@ const MainPage = () => {
     };
 
     // 주어진 날짜 범위에 해당하는 작업들을 불러오는 함수
-    const fetchTasks = async (startDate, endDate) => {
+    const fetchTasks = useCallback(async (startDate, endDate) => {
         try {
             const response = await axios.get("/task", {
                 params: {startDate, endDate},
@@ -52,7 +52,7 @@ const MainPage = () => {
         } catch (error) {
             console.error("Failed to fetch tasks", error);
         }
-    };
+    }, []);
 
     // 작업을 날짜별로 그룹화하는 함수
     const groupTasksByDate = (tasks) => {
@@ -91,13 +91,13 @@ const MainPage = () => {
     useEffect(() => {
         const {startDate, endDate} = calculateMonthRange(selectedYearMonth);
         fetchTasks(startDate, endDate);
-    }, [selectedYearMonth]);
+    }, [selectedYearMonth, fetchTasks]);
 
     useEffect(() => {
         if (selectedDate && selectedDate.getTime() !== activeStartDate.getTime()) {
             setActiveStartDate(selectedDate);
         }
-    }, [selectedDate]);
+    }, [selectedDate, activeStartDate]);
 
     // 날짜를 선택했을 때 처리되는 함수
     const onDateChange = (date) => {
