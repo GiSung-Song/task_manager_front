@@ -34,7 +34,10 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build --build-arg REACT_APP_API_BASE_URL=${{ secrets.BASE_URL }} -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_FRONTEND }} .
+          docker build \
+            --build-arg REACT_APP_API_BASE_URL=${{ secrets.BASE_URL }} \
+            --build-arg PROXY_API_BASE_URL=${{ secrets.PROXY_URL }} \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_FRONTEND }} .
 
       - name: Push Frontend Docker Image
         run: |
