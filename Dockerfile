@@ -32,8 +32,8 @@ COPY --from=build /app/build /usr/share/nginx/html
 # 10. envsubt를 사용해서 환경 변수를 nginx 설정에 적용
 RUN envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
-# 11. 80포트 개방
-EXPOSE 80
+# 11. 443포트 개방
+EXPOSE 443
 
 # 12. Nginx 실행
 CMD ["nginx", "-g", "daemon off;"]

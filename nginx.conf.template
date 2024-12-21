@@ -1,6 +1,6 @@
-http {
+https {
     server {
-        listen 80;
+        listen 443 ssl;
         server_name localhost;
 
         # Nginx가 React 앱의 빌드 파일을 제공할 디렉토리
