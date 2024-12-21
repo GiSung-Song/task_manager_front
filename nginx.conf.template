@@ -3,10 +3,6 @@ http {
         listen 443 ssl;
         server_name localhost;
 
-        # SSL 인증서 경로 설정
-        ssl_certificate /etc/nginx/ssl/your_domain.crt;
-        ssl_certificate_key /etc/nginx/ssl/your_domain.key;
-
         # Nginx가 React 앱의 빌드 파일을 제공할 디렉토리
         root /usr/share/nginx/html;
         index index.html;
