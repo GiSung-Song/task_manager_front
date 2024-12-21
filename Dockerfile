@@ -11,7 +11,11 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # 5. 프로젝트 복사
-COPY . .
+COPY . ./
+
+# 빌드 시 환경 변수 설정 (ARG 사용)
+ARG REACT_APP_API_BASE_URL
+ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
 
 # 6. React 애플리케이션을 정적 파일로 빌드
 RUN npm run build
