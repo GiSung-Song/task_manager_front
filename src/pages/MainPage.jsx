@@ -348,6 +348,7 @@ const MainPage = () => {
                             const newDate = new Date(date);
                             setSelectedDate(newDate);
                         }}
+                        showNeighboringMonth={false}
                         next2Label={null}
                         prev2Label={null}
                         nextLabel={null}

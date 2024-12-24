@@ -16,7 +16,7 @@ const CreateTaskModal = ({open, closeModal}) => {
     const [newTask, setNewTask] = useState({
         title: "",
         description: "",
-        priority: "LOW",
+        taskPriority: "LOW",
         startDate: "",
         deadline: "",
         taskStatus: "PENDING",
@@ -72,7 +72,7 @@ const CreateTaskModal = ({open, closeModal}) => {
             setNewTask({
                 title: "",
                 description: "",
-                priority: "LOW",
+                taskPriority: "LOW",
                 startDate: "",
                 deadline: "",
                 taskStatus: "PENDING",
@@ -122,8 +122,8 @@ const CreateTaskModal = ({open, closeModal}) => {
                 />
                 <FormLabel>Priority</FormLabel>
                 <RadioGroup
-                    value={newTask.priority}
-                    onChange={(e) => handleChange("priority", e.target.value)}
+                    value={newTask.taskPriority}
+                    onChange={(e) => handleChange("taskPriority", e.target.value)}
                     sx={{
                         display: "flex",
                         flexDirection: "row",
